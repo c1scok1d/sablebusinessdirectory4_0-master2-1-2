@@ -1,4 +1,3 @@
-import 'package:app_settings/app_settings.dart';
 import 'package:businesslistingapi/config/ps_colors.dart';
 import 'package:businesslistingapi/constant/ps_constants.dart';
 import 'package:businesslistingapi/constant/ps_dimens.dart';
@@ -13,6 +12,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_facebook_login/flutter_facebook_login.dart';
+import 'package:geofence_service/geofence_service.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -127,20 +127,8 @@ class PermissionRationaleView extends State<PermissionRationale> {
                       minWidth: 100,
                       onPressed: () async {
                         Navigator.of(context).pop();
-
-                        /* Map<Permission, PermissionStatus> permission = await [
-                          Permission.locationAlways,
-                        ].request(); */
-                        if (await Permission.locationAlways.isGranted) {
-                          (await PsSharedPreferences.instance.futureShared)
-                              .setBool(PsConst.GEO_SERVICE_KEY, true);
-                          Navigator.of(context).pop();
-                          Navigator.pushReplacementNamed(
-                            context,
-                            RoutePaths.home,
-                          );
-                        }
-                        // Geofence.initialize();
+                        // Check whether to allow location permission.
+                        await FlLocation.requestLocationPermission();
                       },
                       child: Text(
                         'Continue',
@@ -154,7 +142,7 @@ class PermissionRationaleView extends State<PermissionRationale> {
                       height: 50,
                       minWidth: 100,
                       onPressed: () async {
-                        //Navigator.of(context).pop();
+                        Navigator.of(context).pop();
                         (await PsSharedPreferences.instance.futureShared)
                             .setBool(PsConst.GEO_SERVICE_KEY, false);
                         showDeniedDialog();
@@ -242,7 +230,7 @@ class PermissionRationaleView extends State<PermissionRationale> {
                       minWidth: 100,
                       onPressed: () async {
                         Navigator.of(context).pop();
-                        AppSettings.openAppSettings(asAnotherTask: true);
+                        await FlLocation.requestLocationPermission();
                       },
                       child: Text(
                         'Go to Settings',
@@ -298,7 +286,9 @@ class PermissionRationaleView extends State<PermissionRationale> {
     if (valueHolder == null) {
       return Container();
     }
+
     getNextImage();
+    //requestPermission();
 
     // final dynamic data = EasyLocalizationProvider.of(context).data;
     return
