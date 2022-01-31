@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-// import 'package:admob_flutter/admob_flutter.dart';
-import 'package:app_settings/app_settings.dart';
 import 'package:businesslistingapi/config/ps_theme_data.dart';
 import 'package:businesslistingapi/config/router.dart' as router;
 import 'package:businesslistingapi/provider/common/ps_theme_provider.dart';
@@ -18,17 +16,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 // import 'package:flutter_geofence/geofence.dart';
 import 'package:flutter_native_admob/flutter_native_admob.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:in_app_purchase_ios/in_app_purchase_ios.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'config/ps_colors.dart';
 import 'config/ps_config.dart';
+import 'constant/ps_constants.dart';
 import 'constant/ps_dimens.dart';
+import 'constant/route_paths.dart';
 import 'db/common/ps_shared_preferences.dart';
 // import 'package:awesome_notifications/awesome_notifications.dart';
 
@@ -139,12 +139,6 @@ class PSApp extends StatefulWidget {
   _PSAppState createState() => _PSAppState();
 }
 
-// Future<dynamic> initAds() async {
-//   if (PsConfig.showAdMob && await Utils.checkInternetConnectivity()) {
-//     // FirebaseAdMob.instance.initialize(appId: Utils.getAdAppId());
-//   }
-// }
-
 class _PSAppState extends State<PSApp> {
   Completer<ThemeData> themeDataCompleter;
   PsSharedPreferences psSharedPreferences;
@@ -195,13 +189,42 @@ class _PSAppState extends State<PSApp> {
 
   //check permissions
   Future<void> requestPermission() async {
-    if (await Permission.locationWhenInUse.isDenied) {
-      Map<Permission, PermissionStatus> permission = await [
-        Permission.locationWhenInUse,
-        //Permission.camera,
-      ].request();
-      print(permission[Permission.locationWhenInUse]);
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Test if location services are enabled.
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Location services are not enabled don't continue
+      // accessing the position and request users of the
+      // App to enable the location services.
+      return Future.error('Location services are disabled.');
     }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.deniedForever) {
+      // Permissions are denied forever, handle appropriately.
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        showDeniedDialog();
+      }
+      return Future.error('Location permissions are denied');
+    }
+
+    if (permission == LocationPermission.always) {}
+    if (permission == LocationPermission.whileInUse) {}
+
+    //await prefs.setString('codeC', '');
+    //await psSharedPreferences.shared.setString(
+    //  PsConst.CURRENT_POSITION, Geolocator.getCurrentPosition().toString());
+    //psSharedPreferences.setString(PsConst.VALUE_HOLDER__USER_NAME);
+    // When we reach here, permissions are granted and we can
+    // continue accessing the position of the device.
+    return await Geolocator.getCurrentPosition();
   }
   //end code for taking permission
 
@@ -290,10 +313,9 @@ class _PSAppState extends State<PSApp> {
                       bottom: PsDimens.space8),
                   child: Text(
                     "You will not be alerted when you are near a registered black owned business.\n"
-                    "We respect user privacy. You location will never be recorded or shared for any reason.\n"
-                    "Tap 'Continue' to proceed without receiving alerts.\n"
-                    "To enable alerts when near a registered black owned business select 'allow all the time' at [Go to Settings] > [Permissions]\n"
-                    "Tap 'Continue' and select 'Allow all the time' from the next screen to receive alerts.",
+                    "\n\nWe respect user privacy. You location will never be recorded or shared for any reason.\n"
+                    "\n\nTap 'Continue' to proceed without receiving alerts.\n"
+                    "\n\nTo which  registered black owned businesses are near you select 'Grant Permission' and select 'Allow always\n",
                     style: Theme.of(context).textTheme.subtitle2,
                   ),
                 ),
@@ -309,11 +331,10 @@ class _PSAppState extends State<PSApp> {
                       height: 50,
                       minWidth: 100,
                       onPressed: () async {
-                        Navigator.of(context).pop();
-                        AppSettings.openAppSettings(asAnotherTask: true);
+                        requestPermission(); //call request permission function
                       },
                       child: Text(
-                        'Go to Settings',
+                        'Grant Permission',
                         style: Theme.of(context)
                             .textTheme
                             .button
@@ -323,11 +344,17 @@ class _PSAppState extends State<PSApp> {
                     MaterialButton(
                       height: 50,
                       minWidth: 100,
-                      onPressed: () {
+                      onPressed: () async {
+                        (await PsSharedPreferences.instance.futureShared)
+                            .setBool(PsConst.GEO_SERVICE_KEY, false);
                         Navigator.of(context).pop();
+                        Navigator.pushReplacementNamed(
+                          context,
+                          RoutePaths.home,
+                        );
                       },
                       child: Text(
-                        'No',
+                        'Continue',
                         style: Theme.of(context)
                             .textTheme
                             .button
