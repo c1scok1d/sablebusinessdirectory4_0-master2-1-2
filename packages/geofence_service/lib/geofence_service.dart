@@ -293,7 +293,7 @@ class GeofenceService {
     _locationSubscription = FlLocation.getLocationStream(
       accuracy: LocationAccuracy.navigation,
       interval: _options.interval,
-      distanceFilter: _options.distance,
+      //distanceFilter: _options.distance,
     ).handleError(_handleStreamError).listen(_onLocationReceive);
 
     _locationServicesStatusSubscription =
