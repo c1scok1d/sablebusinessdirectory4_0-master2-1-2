@@ -88,6 +88,7 @@ class PsConst {
   static const String VALUE_HOLDER__CITY_NAME = 'CITY_NAME';
   static const String VALUE_HOLDER__CITY_LAT = 'CITY_LAT';
   static const String VALUE_HOLDER__CITY_LNG = 'CITY_LNG';
+  static const String CURRENT_POSITION = 'CURRENT_POS';
 
   static const String CALL_BACK_EDIT_TO_PROFILE = 'CALL_BACK_EDIT_TO_PROFILE';
 
