@@ -563,9 +563,10 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
     print('currActivity: ${currActivity.toJson()}');
     if (currActivity.type == ActivityType.STILL ||
         currActivity.type == ActivityType.UNKNOWN) {
-      //stop backgroundstatus();
-      return _geofenceService.stop;
-    } else {}
+      //_geofenceService.pause;
+    } else {
+      //_geofenceService.resume;
+    }
   }
 
 // This function is to be called when the location has changed.
@@ -635,47 +636,34 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
   Future<void> initPlatformState() async {
     if (hasAlreadyListened) return;
     print('😡 initPlatform state');
+
     // If the widget was removed from the tree while the asynchronous platform
     // message was in flight, we want to discard the reply rather than calling
     // setState to update our non-existent appearance.
     if (!mounted) return;
     final SharedPreferences sharedPreferences =
         await PsSharedPreferences.instance.futureShared;
+    if (!sharedPreferences.containsKey(PsConst.GEO_SERVICE_KEY)) {
+      (await PsSharedPreferences.instance.futureShared)
+          .setBool(PsConst.GEO_SERVICE_KEY, true);
+    }
     // permission check
-    if (await Permission.locationAlways.isDenied &&
-        !await Permission.locationAlways.isPermanentlyDenied &&
-        sharedPreferences.getBool(PsConst.GEO_SERVICE_KEY).toString() !=
-            'false') {
-      await requestPermission();
-    } else if (await Permission.locationAlways.isGranted) {
+    if (await Permission.locationAlways.isPermanentlyDenied) {
+      globalCoordinate = await GeolocatorPlatform.instance.getCurrentPosition()
+          as geo.Coordinate; //needs to be fixed
+    } else if (await Permission.locationAlways.isDenied) {
+      requestPermission();
+    } else {
       // if locationAlways.isGranted use Geofence to get current lat/lng
       geo.Geofence.initialize();
       geo.Geofence.requestPermissions();
       globalCoordinate = await geo.Geofence.getCurrentLocation();
-      //globalCoordinate = await GeolocatorPlatform.instance.getCurrentPosition()
-
-      // if business notifications are enabled by user
-      if (sharedPreferences.getBool(PsConst.GEO_SERVICE_KEY).toString() ==
-          'true') {
-        checkbackgroundstatus();
-        //startBackgroundTracking(globalCoordinate);
-      }
-      /* print(
-          '$TAG Your latitude is ${globalCoordinate.latitude} and longitude ${globalCoordinate.longitude}'); */
-    } else {
-      // locationAlways.isDenied use geolocator to get current lat/lng
-
-      //currentPostion = await GeolocatorPlatform.instance.getCurrentPosition();
-      globalCoordinate = await GeolocatorPlatform.instance.getCurrentPosition()
-          as geo.Coordinate; //needs to be fixed
+      startBackgroundTracking(globalCoordinate);
     }
-    //Will be handles by handler
-    // geo.Coordinate globalCoordinate = await Geofence.g;
     setState(() {
       _nearMeItemProvider.resetNearMeItemList(globalCoordinate);
-      //globalCoordinate = c;
     });
-    setState(() {});
+    //setState(() {});
   }
 
   double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
@@ -687,8 +675,8 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
     return 12742 * asin(sqrt(a));
   }
 
-  static final double GEOFENCE_EXPIRATION_IN_HOURS = 12;
-  static final double GEOFENCE_EXPIRATION_IN_MILLISECONDS =
+  static const double GEOFENCE_EXPIRATION_IN_HOURS = 12;
+  static const double GEOFENCE_EXPIRATION_IN_MILLISECONDS =
       GEOFENCE_EXPIRATION_IN_HOURS * 60 * 60 * 1000;
   static HashMap<String, SimpleGeofence> geofences =
       HashMap<String, SimpleGeofence>();
@@ -702,13 +690,66 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
             i.id,
             () => SimpleGeofence(
                 i.id,
-                double.parse(i.lat),
-                double.parse(i.lng),
-                i.isFeatured,
-                i.isPromotion,
                 i.cityId,
+                i.catId,
+                i.subCatId,
+                i.itemStatusId,
                 i.name,
-                i.defaultPhoto.imgPath,
+                i.description,
+                i.searchTag,
+                i.highlightInformation,
+                i.isFeatured,
+                i.addedDate,
+                i.addedUserId,
+                i.updatedDate,
+                i.updatedUserId,
+                i.updatedFlag,
+                i.overallRating,
+                i.touchCount,
+                i.favouriteCount,
+                i.likeCount,
+                i.lat,
+                i.lng,
+                i.openingHour,
+                i.closingHour,
+                i.isPromotion,
+                i.phone1,
+                i.phone2,
+                i.phone3,
+                i.email,
+                i.address,
+                i.facebook,
+                i.googlePlus,
+                i.twitter,
+                i.youtube,
+                i.instagram,
+                i.pinterest,
+                i.website,
+                i.whatsapp,
+                i.messenger,
+                i.timeRemark,
+                i.terms,
+                i.cancelationPolicy,
+                i.additionalInfo,
+                i.featuredDate,
+                i.isPaid,
+                i.dynamicLink,
+                i.addedDateStr,
+                i.paidStatus,
+                i.transStatus,
+                i.defaultPhoto,
+                i.city,
+                i.category,
+                i.subCategory,
+                i.itemSpecList,
+                i.user,
+                i.isLiked,
+                i.isFavourited,
+                i.imageCount,
+                i.commentHeaderCount,
+                i.currencySymbol,
+                i.currencyShortForm,
+                i.ratingDetail,
                 [GeofenceRadius(id: i.id, length: 5000)],
                 GEOFENCE_EXPIRATION_IN_MILLISECONDS,
                 GeofenceStatus.DWELL));
@@ -717,36 +758,142 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
             '${i.id}-a',
             () => SimpleGeofence(
                 i.id,
-                double.parse(i.lat),
-                double.parse(i.lng),
-                i.isFeatured,
-                i.isPromotion,
                 i.cityId,
+                i.catId,
+                i.subCatId,
+                i.itemStatusId,
                 i.name,
-                i.defaultPhoto.imgPath,
+                i.description,
+                i.searchTag,
+                i.highlightInformation,
+                i.isFeatured,
+                i.addedDate,
+                i.addedUserId,
+                i.updatedDate,
+                i.updatedUserId,
+                i.updatedFlag,
+                i.overallRating,
+                i.touchCount,
+                i.favouriteCount,
+                i.likeCount,
+                i.lat,
+                i.lng,
+                i.openingHour,
+                i.closingHour,
+                i.isPromotion,
+                i.phone1,
+                i.phone2,
+                i.phone3,
+                i.email,
+                i.address,
+                i.facebook,
+                i.googlePlus,
+                i.twitter,
+                i.youtube,
+                i.instagram,
+                i.pinterest,
+                i.website,
+                i.whatsapp,
+                i.messenger,
+                i.timeRemark,
+                i.terms,
+                i.cancelationPolicy,
+                i.additionalInfo,
+                i.featuredDate,
+                i.isPaid,
+                i.dynamicLink,
+                i.addedDateStr,
+                i.paidStatus,
+                i.transStatus,
+                i.defaultPhoto,
+                i.city,
+                i.category,
+                i.subCategory,
+                i.itemSpecList,
+                i.user,
+                i.isLiked,
+                i.isFavourited,
+                i.imageCount,
+                i.commentHeaderCount,
+                i.currencySymbol,
+                i.currencyShortForm,
+                i.ratingDetail,
                 [GeofenceRadius(id: i.id, length: 5000)],
                 GEOFENCE_EXPIRATION_IN_MILLISECONDS,
-                GeofenceStatus.ENTER));
+                GeofenceStatus.DWELL));
         geofences.putIfAbsent(
-            '${i.id}-b',
+            i.id,
             () => SimpleGeofence(
                 i.id,
-                double.parse(i.lat),
-                double.parse(i.lng),
-                i.isFeatured,
-                i.isPromotion,
                 i.cityId,
+                i.catId,
+                i.subCatId,
+                i.itemStatusId,
                 i.name,
-                i.defaultPhoto.imgPath,
+                i.description,
+                i.searchTag,
+                i.highlightInformation,
+                i.isFeatured,
+                i.addedDate,
+                i.addedUserId,
+                i.updatedDate,
+                i.updatedUserId,
+                i.updatedFlag,
+                i.overallRating,
+                i.touchCount,
+                i.favouriteCount,
+                i.likeCount,
+                i.lat,
+                i.lng,
+                i.openingHour,
+                i.closingHour,
+                i.isPromotion,
+                i.phone1,
+                i.phone2,
+                i.phone3,
+                i.email,
+                i.address,
+                i.facebook,
+                i.googlePlus,
+                i.twitter,
+                i.youtube,
+                i.instagram,
+                i.pinterest,
+                i.website,
+                i.whatsapp,
+                i.messenger,
+                i.timeRemark,
+                i.terms,
+                i.cancelationPolicy,
+                i.additionalInfo,
+                i.featuredDate,
+                i.isPaid,
+                i.dynamicLink,
+                i.addedDateStr,
+                i.paidStatus,
+                i.transStatus,
+                i.defaultPhoto,
+                i.city,
+                i.category,
+                i.subCategory,
+                i.itemSpecList,
+                i.user,
+                i.isLiked,
+                i.isFavourited,
+                i.imageCount,
+                i.commentHeaderCount,
+                i.currencySymbol,
+                i.currencyShortForm,
+                i.ratingDetail,
                 [GeofenceRadius(id: i.id, length: 5000)],
                 GEOFENCE_EXPIRATION_IN_MILLISECONDS,
-                GeofenceStatus.EXIT));
+                GeofenceStatus.DWELL));
       }
     }
     // Geofence.removeAllGeolocations();
     _geofenceService.clearGeofenceList();
-    List<Geofence> _geofenceList = [];
-    geofences.forEach((key, value) {
+    final List<Geofence> _geofenceList = [];
+    geofences.forEach((String key, SimpleGeofence value) {
       _geofenceList.add(value.toGeofence());
     });
 
@@ -773,19 +920,19 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
       }
       if (transitionType != 'EXIT' &&
           geofenceStatus == GeofenceStatus.EXIT &&
-          item.isfeatured == '1') {
-        print('Exiting ${item.item_name}');
+          item.isFeatured == '1') {
+        print('Exiting ${item.name}');
         transitionType = 'EXIT';
         scheduleNotification("Don't miss an opportunity to buy black.",
-            'You are near ${item.item_name}', GeofenceStatus.EXIT,
+            'You are near ${item.name}', GeofenceStatus.EXIT,
             paypload: item.id, item: item);
       } else if (transitionType != 'DWELL' &&
           geofenceStatus == GeofenceStatus.DWELL &&
           item.isPromotion == '1') {
-        print('Dwelling ${item.item_name}');
+        print('Dwelling ${item.name}');
         transitionType = 'DWELL';
-        scheduleNotification('You are near ${item.item_name}',
-            'Stop in and say Hi!', GeofenceStatus.DWELL,
+        scheduleNotification('You are near ${item.name}', 'Stop in and say Hi!',
+            GeofenceStatus.DWELL,
             paypload: item.id, item: item);
       } else if (transitionType != 'ENTER' &&
           geofenceStatus == GeofenceStatus.ENTER) {
@@ -849,7 +996,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
 
     Future.delayed(const Duration(seconds: 5), () {}).then((result) async {
       var mfile = null;
-      if (item == null || item.imageId == null) {
+      if (item == null || item.defaultPhoto == null) {
         mfile = await getImageFilePathFromAssets(
             'assets/images/making_thumbs_up_foreground.png');
         var smallPictureStyleInformation = BigPictureStyleInformation(
@@ -892,8 +1039,8 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
             platformChannelSpecifics,
             payload: paypload);
       } else {
-        mfile = await SaveFile()
-            .saveImage(PsConfig.ps_app_image_url + item.imageId ?? '');
+        mfile = await SaveFile().saveImage(
+            PsConfig.ps_app_image_url + item.defaultPhoto.imgPath ?? '');
         print(mfile.absolute.path);
         var smallPictureStyleInformation = BigPictureStyleInformation(
             FilePathAndroidBitmap(mfile.absolute.path),
@@ -974,115 +1121,11 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
 
   Future<void> requestPermission() async {
     print('REQUESTING PERMISSION');
-    if (await Permission.locationAlways.isDenied &&
-        !await Permission.locationAlways.isPermanentlyDenied) {
-      Navigator.pushReplacementNamed(
-        context,
-        RoutePaths.permissionRationale,
-      );
-    }
-  }
-
-  /*void showDeniedDialog() {
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Container(
-                    height: 60,
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(PsDimens.space8),
-                    decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(5),
-                            topRight: Radius.circular(5)),
-                        color: PsColors.mainColor),
-                    child: Row(
-                      children: <Widget>[
-                        const SizedBox(width: PsDimens.space4),
-                        Icon(
-                          Icons.pin_drop,
-                          color: PsColors.white,
-                        ),
-                        const SizedBox(width: PsDimens.space4),
-                        Text(
-                          'Special Permission',
-                          textAlign: TextAlign.start,
-                          style: TextStyle(
-                            color: PsColors.white,
-                          ),
-                        ),
-                      ],
-                    )),
-                const SizedBox(height: PsDimens.space20),
-                Container(
-                  padding: const EdgeInsets.only(
-                      left: PsDimens.space16,
-                      right: PsDimens.space16,
-                      top: PsDimens.space8,
-                      bottom: PsDimens.space8),
-                  child: Text(
-                    "You will not be alerted when you are near a registered black owned business.\n "
-                    "We respect user privacy. You location will never be recorded or shared for any reason.\n "
-                    "Tap 'Continue' to proceed without receiving alerts.\n"
-                    "To enable alerts when near a registered black owned business select 'allow all the time' at [Go to Settings] > [Permissions]\n"
-                    "Tap 'Continue' and select 'Allow all the time' from the next screen to receive alerts.\n",
-                    style: Theme.of(context).textTheme.subtitle2,
-                  ),
-                ),
-                const SizedBox(height: PsDimens.space20),
-                Divider(
-                  thickness: 0.5,
-                  height: 1,
-                  color: Theme.of(context).iconTheme.color,
-                ),
-                ButtonBar(
-                  children: [
-                    MaterialButton(
-                      height: 50,
-                      minWidth: 100,
-                      onPressed: () async {
-                        Navigator.of(context).pop();
-
-                        AppSettings.openAppSettings(asAnotherTask: true);
-                      },
-                      child: Text(
-                        'Go to Settings',
-                        style: Theme.of(context)
-                            .textTheme
-                            .button
-                            .copyWith(color: PsColors.mainColor),
-                      ),
-                    ),
-                    MaterialButton(
-                      height: 50,
-                      minWidth: 100,
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: Text(
-                        'No',
-                        style: Theme.of(context)
-                            .textTheme
-                            .button
-                            .copyWith(color: PsColors.mainColor),
-                      ),
-                    )
-                  ],
-                )
-              ],
-            ),
-          ),
-        );
-      },
+    Navigator.pushReplacementNamed(
+      context,
+      RoutePaths.permissionRationale,
     );
-  } */
+  }
 }
 
 class _HomeFeaturedItemHorizontalListWidget extends StatefulWidget {
