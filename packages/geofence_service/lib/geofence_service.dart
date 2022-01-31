@@ -232,7 +232,7 @@ class GeofenceService {
 
   /// Remove geofence list.
   void removeGeofenceList(List<Geofence> geofenceList) {
-    for (var i = 0; i < geofenceList.length; i++)
+    for (int i = 0; i < geofenceList.length; i++)
       removeGeofence(geofenceList[i]);
   }
 
@@ -255,30 +255,37 @@ class GeofenceService {
       return Future.error(ErrorCodes.LOCATION_SERVICES_DISABLED);
 
     // Check whether to allow location permission.
-    var locationPermission = await FlLocation.checkLocationPermission();
+    LocationPermission locationPermission =
+        await FlLocation.checkLocationPermission();
     if (locationPermission == LocationPermission.deniedForever) {
       return Future.error(ErrorCodes.LOCATION_PERMISSION_PERMANENTLY_DENIED);
     } else if (locationPermission == LocationPermission.denied) {
       locationPermission = await FlLocation.requestLocationPermission();
       if (locationPermission == LocationPermission.denied ||
-          locationPermission == LocationPermission.deniedForever)
-        return Future.error(ErrorCodes.LOCATION_PERMISSION_DENIED);
+          locationPermission == LocationPermission.deniedForever) {
+        //show explanation
+      }
+    } else {
+      //do stuff or keep going
     }
 
     // Activity Recognition API 사용 안함
     if (_options.useActivityRecognition == false) return;
 
     // Check whether to allow activity recognition permission.
-    var activityPermission =
+    PermissionRequestResult activityPermission =
         await FlutterActivityRecognition.instance.checkPermission();
     if (activityPermission == PermissionRequestResult.PERMANENTLY_DENIED) {
-      return Future.error(
-          ErrorCodes.ACTIVITY_RECOGNITION_PERMISSION_PERMANENTLY_DENIED);
+      //return Future.error(ErrorCodes.ACTIVITY_RECOGNITION_PERMISSION_PERMANENTLY_DENIED);
     } else if (activityPermission == PermissionRequestResult.DENIED) {
       activityPermission =
           await FlutterActivityRecognition.instance.requestPermission();
-      if (activityPermission != PermissionRequestResult.GRANTED)
-        return Future.error(ErrorCodes.ACTIVITY_RECOGNITION_PERMISSION_DENIED);
+      if (activityPermission == PermissionRequestResult.DENIED ||
+          activityPermission == PermissionRequestResult.PERMANENTLY_DENIED) {
+        //show explanation
+      }
+    } else {
+      // do stuff or keep going
     }
   }
 
