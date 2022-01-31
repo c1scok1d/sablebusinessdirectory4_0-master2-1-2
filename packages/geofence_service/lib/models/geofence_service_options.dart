@@ -10,6 +10,9 @@ class GeofenceServiceOptions {
   /// The default is `100`.
   int _accuracy = 100;
 
+  /// The distance interval in meters to check the geofence status.
+  double _distance = 5;
+
   /// Sets the delay between [GeofenceStatus.ENTER] and [GeofenceStatus.DWELL] in milliseconds.
   /// The default is `300000`.
   int _loiteringDelayMs = 300000;
@@ -41,6 +44,9 @@ class GeofenceServiceOptions {
 
   int get interval => _interval;
   set interval(int? value) => _interval = value ?? _interval;
+
+  double get distance => _distance;
+  set distance(double? value) => _distance = value ?? _distance;
 
   int get accuracy => _accuracy;
   set accuracy(int? value) => _accuracy = value ?? _accuracy;
