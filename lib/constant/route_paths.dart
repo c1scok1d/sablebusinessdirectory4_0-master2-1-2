@@ -2,12 +2,14 @@ class RoutePaths {
   static const String home = '/home';
   static const String introSlider = '/introSlider';
   static const String permissionRationale = '/permissionRationale';
+  static const String activityPermissionRationale =
+      '/activityPermissionRationale';
   static const String itemHome = '/itemHome';
   static const String force_update = '/force_update';
   static const String categoryList = '/categoryList';
   static const String languageList = '/languageList';
   static const String appinfo = '/appinfo';
-   static const String contactUs = '/contactUs';
+  static const String contactUs = '/contactUs';
   static const String subCategoryList = '/subCategoryList';
   static const String productList = '/productList';
   static const String notiList = '/notiList';
