@@ -592,7 +592,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
   }
 
   Future<void> startBackgroundTracking(geo.Coordinate globalCoordinate) async {
-    print('$TAG startBackgroundTracking');
+    print('$TAG startBackgroundTracking:' + globalCoordinate.toString());
 
     final SearchItemProvider provider =
         SearchItemProvider(repo: itemRepo, psValueHolder: valueHolder);
@@ -630,6 +630,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
       startBackgroundTracking(globalCoordinate);
     }
   }
+
   //end if PsConst.GEO_SERVICE_KEY = true
 
   // Platform messages are asynchronous, so we initialize in an async method.
@@ -682,7 +683,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
       HashMap<String, SimpleGeofence>();
 
   void registerGeofences(PsResource<List<Item>> items) {
-    print('$TAG RegisterGeofences ${items.status}');
+    print('$TAG RegisterGeofences ${items.message}');
     for (Item i in items.data) {
       //necessary values are null here
       if (i.isPaid == '1') {
@@ -902,85 +903,98 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
 
   //int nearGeofences = 0;
   int x = 0;
+
   /* bool hasDisplayedEnter = false;
   bool hasDisplayedDwell = false;
   bool hasDisplayedExit = false; */
   String transitionType;
-
   Future<void> actOnGeofence(
       GeofenceStatus geofenceStatus, Geofence geofence) async {
-    print('actOnGeofence');
+    print('actOnGeofence-start');
 
     final SharedPreferences sharedPreferences =
         await PsSharedPreferences.instance.futureShared;
-    getGeoCity(geofence.id).then((SimpleGeofence item) {
-      if (item == null) {
-        print('$TAG Could not set notification, Item not found');
-        return;
-      }
-      if (transitionType != 'EXIT' &&
-          geofenceStatus == GeofenceStatus.EXIT &&
-          item.isFeatured == '1') {
-        print('Exiting ${item.name}');
-        transitionType = 'EXIT';
-        scheduleNotification("Don't miss an opportunity to buy black.",
-            'You are near ${item.name}', GeofenceStatus.EXIT,
-            paypload: item.id, item: item);
-      } else if (transitionType != 'DWELL' &&
-          geofenceStatus == GeofenceStatus.DWELL &&
-          item.isPromotion == '1') {
-        print('Dwelling ${item.name}');
-        transitionType = 'DWELL';
-        scheduleNotification('You are near ${item.name}', 'Stop in and say Hi!',
-            GeofenceStatus.DWELL,
-            paypload: item.id, item: item);
-      } else if (transitionType != 'ENTER' &&
-          geofenceStatus == GeofenceStatus.ENTER) {
-        print(geofences.length.toString() + ' black owned business nearby!');
-        transitionType = 'ENTER';
-        String firstName = '';
-        try {
-          firstName =
-              sharedPreferences.getString(PsConst.VALUE_HOLDER__USER_NAME);
-          firstName ??= '';
-        } on Exception catch (e) {
-          print('$TAG Could not get the name');
+    getGeoCity(geofence.id).then((SimpleGeofence item1) {
+      // PsValueHolder psValueHolder;
+      // psValueHolder = Provider.of<PsValueHolder>(context);
+      ItemDetailProvider itemDetailProvider =
+          ItemDetailProvider(repo: itemRepo, psValueHolder: psValueHolder);
+      final String loginUserId = Utils.checkUserLoginId(psValueHolder);
+      itemDetailProvider.loadItem(item1.id, loginUserId).then((item) {
+        item=itemDetailProvider.itemDetail.data;
+        // print('$TAG actOnGeofence-geofence:${geofence.toJson()}');
+        // print('$TAG actOnGeofence-SimpleGeofence1:${item1.toString()}');
+        // print('$TAG actOnGeofence-item:${item.toString()}');
+        if (item == null) {
+          print('$TAG Could not set notification, Item not found');
+          return;
         }
-      }
-      PsSharedPreferences.instance.futureShared
-          .then((SharedPreferences sharedPreferences) {
-        String message;
-        switch (geofences.length) {
-          case 0:
-            message = 'There are no black owned businesses near you!';
-            break;
-          case 1:
-            message = 'There is ' +
-                geofences.length.toString() +
-                ' black owned business near you!';
-            break;
-          default:
-            message = 'There are ' +
-                geofences.length.toString() +
-                ' black owned businesses near you!';
-            break;
-        }
-
-        if (sharedPreferences.getString(PsConst.VALUE_HOLDER__USER_NAME) ==
-                null ||
-            sharedPreferences.getString(PsConst.VALUE_HOLDER__USER_NAME) ==
-                '') {
-          scheduleNotification('Good news', message, GeofenceStatus.ENTER,
+        if (transitionType != 'EXIT' &&
+            geofenceStatus == GeofenceStatus.EXIT &&
+            item.isFeatured == '1') {
+          print('Exiting ${item.name}');
+          transitionType = 'EXIT';
+          scheduleNotification("Don't miss an opportunity to buy black.",
+              'You are near ${item.name}', GeofenceStatus.EXIT,
               paypload: item.id, item: item);
-        } else {
-          scheduleNotification(
-              'Good news ' +
-                  sharedPreferences.getString(PsConst.VALUE_HOLDER__USER_NAME),
-              message,
-              GeofenceStatus.ENTER,
-              paypload: item.id,
-              item: item);
+        } else if (transitionType != 'DWELL' &&
+            geofenceStatus == GeofenceStatus.DWELL &&
+            item.isPromotion == '1') {
+          print('Dwelling ${item.name}');
+          transitionType = 'DWELL';
+          scheduleNotification('You are near ${item.name}',
+              'Stop in and say Hi!', GeofenceStatus.DWELL,
+              paypload: item.id, item: item);
+        } else if (transitionType != 'ENTER' &&
+            geofenceStatus == GeofenceStatus.ENTER) {
+          print(geofences.length.toString() + ' black owned business nearby!');
+          transitionType = 'ENTER';
+          String firstName = '';
+          try {
+            firstName =
+                sharedPreferences.getString(PsConst.VALUE_HOLDER__USER_NAME);
+            firstName ??= '';
+          } on Exception catch (e) {
+            print('$TAG Could not get the name');
+          }
         }
+        PsSharedPreferences.instance.futureShared
+            .then((SharedPreferences sharedPreferences) {
+          String message;
+          switch (geofences.length) {
+            case 0:
+              message = 'There are no black owned businesses near you!';
+              break;
+            case 1:
+              message = 'There is ' +
+                  geofences.length.toString() +
+                  ' black owned business near you!';
+              break;
+            default:
+              message = 'There are ' +
+                  geofences.length.toString() +
+                  ' black owned businesses near you!';
+              break;
+          }
+
+          if (sharedPreferences.getString(PsConst.VALUE_HOLDER__USER_NAME) ==
+                  null ||
+              sharedPreferences.getString(PsConst.VALUE_HOLDER__USER_NAME) ==
+                  '') {
+            scheduleNotification('Good news', message, GeofenceStatus.ENTER,
+                paypload: item.id, item: item);
+          } else {
+            scheduleNotification(
+                'Good news ' +
+                    sharedPreferences
+                        .getString(PsConst.VALUE_HOLDER__USER_NAME),
+                message,
+                GeofenceStatus.ENTER,
+                paypload: item.id,
+                item: item);
+          }
+        });
+
         //}
       });
       //}
@@ -991,7 +1005,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
 
   Future<void> scheduleNotification(
       String title, String subtitle, GeofenceStatus event,
-      {String paypload = "Item x", SimpleGeofence item}) async {
+      {String paypload = "Item x", Item item}) async {
     print("$TAG scheduling one with $title and $subtitle");
 
     Future.delayed(const Duration(seconds: 5), () {}).then((result) async {
@@ -1270,11 +1284,12 @@ class _HomeNearMeItemHorizontalListWidget extends StatefulWidget {
   __HomeNearMeItemHorizontalListWidgetState createState() =>
       __HomeNearMeItemHorizontalListWidgetState();
 }
+ItemDetailProvider itemDetailProvider;
+PsValueHolder psValueHolder;
 
 class __HomeNearMeItemHorizontalListWidgetState
     extends State<_HomeNearMeItemHorizontalListWidget> {
   ItemRepository itemRepo;
-  PsValueHolder psValueHolder;
 
   @override
   Widget build(BuildContext context) {
@@ -1333,7 +1348,7 @@ class __HomeNearMeItemHorizontalListWidgetState
                                   final Item item =
                                       itemProvider.itemList.data[index];
 
-                                  ItemDetailProvider itemDetailProvider =
+                                  itemDetailProvider =
                                       ItemDetailProvider(
                                           repo: itemRepo,
                                           psValueHolder: psValueHolder);
@@ -1354,7 +1369,8 @@ class __HomeNearMeItemHorizontalListWidgetState
                                         return ItemHorizontalListItem(
                                           coreTagKey:
                                               itemProvider.hashCode.toString() +
-                                                  item.id, //'feature',
+                                                  item.id,
+                                          //'feature',
                                           // item: itemProvider.itemList.data[index],
                                           item: itemDetailProvider
                                               .itemDetail.data,
@@ -1388,7 +1404,8 @@ class __HomeNearMeItemHorizontalListWidgetState
                                         return ItemHorizontalListItem(
                                           coreTagKey:
                                               itemProvider.hashCode.toString() +
-                                                  item.id, //'feature',
+                                                  item.id,
+                                          //'feature',
                                           // item: itemProvider.itemList.data[index],
                                           item: item,
                                           onTap: () async {
