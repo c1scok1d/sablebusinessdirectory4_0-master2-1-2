@@ -6,7 +6,6 @@ import 'package:businesslistingapi/constant/ps_dimens.dart';
 import 'package:businesslistingapi/constant/route_paths.dart';
 import 'package:businesslistingapi/db/common/ps_shared_preferences.dart';
 import 'package:businesslistingapi/provider/common/notification_provider.dart';
-import 'package:businesslistingapi/provider/item/near_me_item_provider.dart';
 import 'package:businesslistingapi/repository/Common/notification_repository.dart';
 import 'package:businesslistingapi/repository/blog_repository.dart';
 import 'package:businesslistingapi/repository/category_repository.dart';
@@ -38,8 +37,6 @@ PsValueHolder _psValueHolder;
 final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 bool hasAlreadyListened = false;
 geo.Coordinate globalCoordinate;
-//Position globalCoordinate;
-var _geofenceService;
 PsValueHolder valueHolder;
 CategoryRepository categoryRepo;
 ItemRepository itemRepo;
@@ -95,8 +92,6 @@ class __NotificationSettingWidgetState
     extends State<_NotificationSettingWidget> {
   bool isSwitched = true;
   bool isGeoEnabled = true;
-  NearMeItemProvider _nearMeItemProvider;
-
   @override
   Future<void> initState() {
     super.initState();
@@ -161,23 +156,18 @@ class __NotificationSettingWidgetState
     final Widget _geofenceSwitch = Switch(
         value: isGeoEnabled,
         onChanged: (bool value) async {
-          if (isGeoEnabled == true) {
-            await requestPermission();
-          }
-          final SharedPreferences x =
-              await PsSharedPreferences.instance.futureShared;
-          await x.setBool(PsConst.GEO_SERVICE_KEY, value);
-
-          setState(() async {
-            //code written by xpertlab - if PsConst.GEO_SERVICE_KEY is true: set switch to on else set switch to off
-
+          if (isGeoEnabled && await Permission.locationAlways.isGranted) {
             final SharedPreferences sharedPreferences =
                 await PsSharedPreferences.instance.futureShared;
-            String status = "";
-            status =
-                sharedPreferences.getBool(PsConst.GEO_SERVICE_KEY).toString();
+            await sharedPreferences.setBool(PsConst.GEO_SERVICE_KEY, value);
+          } else {
+            await requestPermission();
+          }
 
-            if (status == "true") {
+          setState(() async {
+            final SharedPreferences sharedPreferences =
+                await PsSharedPreferences.instance.futureShared;
+            if (sharedPreferences.getBool(PsConst.GEO_SERVICE_KEY)) {
               isGeoEnabled = true;
               //startBackgroundTracking(globalCoordinate);
             } else {
@@ -195,7 +185,7 @@ class __NotificationSettingWidgetState
       style: Theme.of(context).textTheme.subtitle1,
     );
     final Widget _geoSettingTextWidget = Text(
-      'Geo Notification Setting (On/Off)',
+      'Geo Notification Setting (Off/On)',
       style: Theme.of(context).textTheme.subtitle1,
     );
 
@@ -256,118 +246,14 @@ class __NotificationSettingWidgetState
       ],
     );
   }
-/*
-  static final double GEOFENCE_EXPIRATION_IN_HOURS = 12;
-  static final double GEOFENCE_EXPIRATION_IN_MILLISECONDS =
-      GEOFENCE_EXPIRATION_IN_HOURS * 60 * 60 * 1000;
-  static HashMap<String, SimpleGeofence> geofences =
-      HashMap<String, SimpleGeofence>();
-
-  void registerGeofences(PsResource<List<Item>> items) {
-    //print('$TAG RegisterGeofences ${items.data.first.paidStatus}');
-
-    for (Item i in items.data) {
-      if (i.isPaid == '1') {
-        geofences.putIfAbsent(
-            i.id,
-            () => SimpleGeofence(
-                i.id,
-                double.parse(i.lat),
-                double.parse(i.lng),
-                i.isFeatured,
-                i.isPromotion,
-                i.cityId,
-                i.name,
-                i.defaultPhoto?.imgPath,
-                [GeofenceRadius(id: i.id, length: 5000)],
-                GEOFENCE_EXPIRATION_IN_MILLISECONDS,
-                GeofenceStatus.DWELL));
-      } else if (i.isFeatured == '1' || i.isPromotion == '1') {
-        geofences.putIfAbsent(
-            '${i.id}-a',
-            () => SimpleGeofence(
-                i.id,
-                double.parse(i.lat),
-                double.parse(i.lng),
-                i.isFeatured,
-                i.isPromotion,
-                i.cityId,
-                i.name,
-                i.defaultPhoto?.imgPath,
-                [GeofenceRadius(id: i.id, length: 5000)],
-                GEOFENCE_EXPIRATION_IN_MILLISECONDS,
-                GeofenceStatus.ENTER));
-        geofences.putIfAbsent(
-            '${i.id}-b',
-            () => SimpleGeofence(
-                i.id,
-                double.parse(i.lat),
-                double.parse(i.lng),
-                i.isFeatured,
-                i.isPromotion,
-                i.cityId,
-                i.name,
-                i.defaultPhoto?.imgPath,
-                [GeofenceRadius(id: i.id, length: 5000)],
-                GEOFENCE_EXPIRATION_IN_MILLISECONDS,
-                GeofenceStatus.EXIT));
-      }
-    }
-    // Geofence.removeAllGeolocations();
-    _geofenceService.clearGeofenceList();
-    List<Geofence> _geofenceList = [];
-    geofences.forEach((key, value) {
-      _geofenceList.add(value.toGeofence());
-    });
-
-    _geofenceService.start(_geofenceList).catchError(_onError);
-  } */
 
   Future<void> requestPermission() async {
     print('REQUESTING PERMISSION');
-    if (await Permission.locationAlways.isDenied &&
-        !await Permission.locationAlways.isPermanentlyDenied) {
-      Navigator.pushReplacementNamed(
-        context,
-        RoutePaths.permissionRationale,
-      );
-    }
+    await Navigator.pushReplacementNamed(
+      context,
+      RoutePaths.permissionRationale,
+    );
   }
-
-  /*void _onError(error) {
-    final errorCode = getErrorCodesFromError(error);
-    if (errorCode == null) {
-      print('Undefined error: $error');
-      return;
-    }
-
-    print('ErrorCode: $errorCode');
-  } */
-
-  /* Future<void> startBackgroundTracking(geo.Coordinate globalCoordinate) async {
-    //print('$TAG startBackgroundTracking');
-
-    final SearchItemProvider provider =
-        SearchItemProvider(repo: itemRepo, psValueHolder: valueHolder);
-    ItemParameterHolder itemParameterHolder = ItemParameterHolder();
-    bool isConnectedToInternet = await Utils.checkInternetConnectivity();
-    final StreamController<PsResource<List<Item>>> itemListStream =
-        StreamController<PsResource<List<Item>>>.broadcast();
-    itemListStream.stream.listen((event) {
-      print('Fetch some items ${event.data.length}');
-      registerGeofences(event);
-    });
-    itemRepo.getItemListByLoc(
-        itemListStream,
-        isConnectedToInternet,
-        30,
-        0,
-        PsStatus.PROGRESS_LOADING,
-        globalCoordinate.latitude,
-        globalCoordinate.longitude,
-        PsConst.RADIUS,
-        itemParameterHolder.getSearchParameterHolder());
-  } */
 
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initPlatformState() async {
@@ -377,125 +263,6 @@ class __NotificationSettingWidgetState
     // message was in flight, we want to discard the reply rather than calling
     // setState to update our non-existent appearance.
     if (!mounted) return;
-
-    //geo.Geofence.initialize();
-    /* geo.Geofence.requestPermissions();
-    globalCoordinate = await geo.Geofence.getCurrentLocation();
-    //globalCoordinate = await GeolocatorPlatform.instance.getCurrentPosition();
-
-    //Will be handles by handler
-    // geo.Coordinate globalCoordinate = await Geofence.g;
-    setState(() {
-      _nearMeItemProvider.resetNearMeItemList(globalCoordinate);
-      //globalCoordinate = c;
-    });
-    // permission check
-    //requestPermission();
-    // if permission check good start geoNotifications
-    startBackgroundTracking(globalCoordinate);
-    //print('$TAG Your latitude is ${globalCoordinate.latitude} and longitude ${globalCoordinate.longitude}'); */
-
     setState(() {});
   }
-
-  /* void showDeniedDialog() {
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Container(
-                    height: 60,
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(PsDimens.space8),
-                    decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(5),
-                            topRight: Radius.circular(5)),
-                        color: PsColors.mainColor),
-                    child: Row(
-                      children: <Widget>[
-                        const SizedBox(width: PsDimens.space4),
-                        Icon(
-                          Icons.pin_drop,
-                          color: PsColors.white,
-                        ),
-                        const SizedBox(width: PsDimens.space4),
-                        Text(
-                          'Special Permission',
-                          textAlign: TextAlign.start,
-                          style: TextStyle(
-                            color: PsColors.white,
-                          ),
-                        ),
-                      ],
-                    )),
-                const SizedBox(height: PsDimens.space20),
-                Container(
-                  padding: const EdgeInsets.only(
-                      left: PsDimens.space16,
-                      right: PsDimens.space16,
-                      top: PsDimens.space8,
-                      bottom: PsDimens.space8),
-                  child: Text(
-                    "You will not be alerted when you are near a registered black owned business. "
-                    "We respect user privacy. You location will never be recorded or shared for any reason. "
-                    "Tap 'Continue' to proceed without receiving alerts. "
-                    "To enable alerts when near a registered black owned business select 'allow all the time' at [Go to Settings] > [Permissions]"
-                    "Tap 'Continue' and select 'Allow all the time' from the next screen to receive alerts.",
-                    style: Theme.of(context).textTheme.subtitle2,
-                  ),
-                ),
-                const SizedBox(height: PsDimens.space20),
-                Divider(
-                  thickness: 0.5,
-                  height: 1,
-                  color: Theme.of(context).iconTheme.color,
-                ),
-                ButtonBar(
-                  children: [
-                    MaterialButton(
-                      height: 50,
-                      minWidth: 100,
-                      onPressed: () async {
-                        Navigator.of(context).pop();
-
-                        AppSettings.openAppSettings(asAnotherTask: true);
-                      },
-                      child: Text(
-                        'Go to Settings',
-                        style: Theme.of(context)
-                            .textTheme
-                            .button
-                            .copyWith(color: PsColors.mainColor),
-                      ),
-                    ),
-                    MaterialButton(
-                      height: 50,
-                      minWidth: 100,
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: Text(
-                        'No',
-                        style: Theme.of(context)
-                            .textTheme
-                            .button
-                            .copyWith(color: PsColors.mainColor),
-                      ),
-                    )
-                  ],
-                )
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  } */
 }
