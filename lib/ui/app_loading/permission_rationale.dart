@@ -126,9 +126,8 @@ class PermissionRationaleView extends State<PermissionRationale> {
                       height: 50,
                       minWidth: 100,
                       onPressed: () async {
-                        // Navigator.of(context).pop();
-                        // Check whether to allow location permission.
-                        await FlLocation.requestLocationPermission();
+                        Navigator.of(context).pop();
+                        FlLocation.requestLocationPermission();
                       },
                       child: Text(
                         'Continue',
@@ -229,8 +228,8 @@ class PermissionRationaleView extends State<PermissionRationale> {
                       height: 50,
                       minWidth: 100,
                       onPressed: () async {
-                        //Navigator.of(context).pop();
-                        await FlLocation.requestLocationPermission();
+                        Navigator.of(context).pop();
+                        FlLocation.requestLocationPermission();
                       },
                       child: Text(
                         'Go to Settings',
