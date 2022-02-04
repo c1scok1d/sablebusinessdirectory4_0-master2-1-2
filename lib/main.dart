@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 // import 'package:flutter_geofence/geofence.dart';
 import 'package:flutter_native_admob/flutter_native_admob.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
@@ -33,6 +34,21 @@ import 'db/common/ps_shared_preferences.dart';
 // import 'package:awesome_notifications/awesome_notifications.dart';
 
 Future<void> main() async {
+
+  FlutterNativeSplash.removeAfter(initialization);
+
+
+  runApp(EasyLocalization(
+      path: 'assets/langs',
+      saveLocale: true,
+      startLocale: PsConfig.defaultLanguage.toLocale(),
+      supportedLocales: getSupportedLanguages(),
+      child: PSApp()));
+}
+void initialization(BuildContext context) async {
+  // This is where you can initialize the resources needed by your app while
+  // the splash screen is displayed.  After this function completes, the
+  // splash screen will be removed.
   // add this, and it should be the first line in main method
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -116,13 +132,6 @@ Future<void> main() async {
   }
 
   MobileAds.instance.initialize();
-
-  runApp(EasyLocalization(
-      path: 'assets/langs',
-      saveLocale: true,
-      startLocale: PsConfig.defaultLanguage.toLocale(),
-      supportedLocales: getSupportedLanguages(),
-      child: PSApp()));
 }
 
 List<Locale> getSupportedLanguages() {
