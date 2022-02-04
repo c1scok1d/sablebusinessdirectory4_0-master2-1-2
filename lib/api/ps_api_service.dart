@@ -324,7 +324,9 @@ class PsApiService extends PsApi {
       String itemId, String loginUserId) async {
     final String url =
         '${PsUrl.ps_item_detail_url}/api_key/${PsConfig.ps_api_key}/id/$itemId/login_user_id/$loginUserId';
-    return await getServerCall<Item, Item>(Item(), url);
+    PsResource<Item> x= await getServerCall<Item, Item>(Item(), url);
+    print('Network Response'+x.data.toString());
+    return x;
   }
 
   Future<PsResource<List<Item>>> getRelatedItemList(
