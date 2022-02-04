@@ -593,8 +593,6 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
 
   Future<void> _startBackgroundTracking(geo.Coordinate globalCoordinate) async {
     print('$TAG startBackgroundTracking');
-  Future<void> startBackgroundTracking(geo.Coordinate globalCoordinate) async {
-    print('$TAG startBackgroundTracking:' + globalCoordinate.toString());
 
     final SearchItemProvider provider =
         SearchItemProvider(repo: itemRepo, psValueHolder: valueHolder);
@@ -632,7 +630,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
       startBackgroundTracking(globalCoordinate);
     }
   } */
-  }
+  //}
 
   //end if PsConst.GEO_SERVICE_KEY = true
 
@@ -919,7 +917,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
           ItemDetailProvider(repo: itemRepo, psValueHolder: psValueHolder);
       final String loginUserId = Utils.checkUserLoginId(psValueHolder);
       itemDetailProvider.loadItem(item1.id, loginUserId).then((item) {
-        item=itemDetailProvider.itemDetail.data;
+        item = itemDetailProvider.itemDetail.data;
         // print('$TAG actOnGeofence-geofence:${geofence.toJson()}');
         // print('$TAG actOnGeofence-SimpleGeofence1:${item1.toString()}');
         // print('$TAG actOnGeofence-item:${item.toString()}');
@@ -1289,6 +1287,7 @@ class _HomeNearMeItemHorizontalListWidget extends StatefulWidget {
   __HomeNearMeItemHorizontalListWidgetState createState() =>
       __HomeNearMeItemHorizontalListWidgetState();
 }
+
 ItemDetailProvider itemDetailProvider;
 PsValueHolder psValueHolder;
 
@@ -1353,10 +1352,9 @@ class __HomeNearMeItemHorizontalListWidgetState
                                   final Item item =
                                       itemProvider.itemList.data[index];
 
-                                  itemDetailProvider =
-                                      ItemDetailProvider(
-                                          repo: itemRepo,
-                                          psValueHolder: psValueHolder);
+                                  itemDetailProvider = ItemDetailProvider(
+                                      repo: itemRepo,
+                                      psValueHolder: psValueHolder);
 
                                   final String loginUserId =
                                       Utils.checkUserLoginId(psValueHolder);
