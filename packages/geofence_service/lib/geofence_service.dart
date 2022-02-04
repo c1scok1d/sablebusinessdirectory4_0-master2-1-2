@@ -253,7 +253,6 @@ class GeofenceService {
     // Check whether location services are enabled.
     if (!await FlLocation.isLocationServicesEnabled)
       return Future.error(ErrorCodes.LOCATION_SERVICES_DISABLED);
-
     // Check whether to allow location permission.
     LocationPermission locationPermission =
         await FlLocation.checkLocationPermission();
@@ -265,13 +264,9 @@ class GeofenceService {
           locationPermission == LocationPermission.deniedForever) {
         //show explanation
       }
-    } else {
-      //do stuff or keep going
     }
-
-    // Activity Recognition API 사용 안함
+    // Activity Recognition API
     if (_options.useActivityRecognition == false) return;
-
     // Check whether to allow activity recognition permission.
     PermissionRequestResult activityPermission =
         await FlutterActivityRecognition.instance.checkPermission();

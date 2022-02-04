@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:businesslistingapi/api/common/ps_resource.dart';
 import 'package:businesslistingapi/api/common/ps_status.dart';
@@ -211,11 +210,11 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
       _geofenceService.addStreamErrorListener(_onError);
     });
 // initialise the plugin. app_icon needs to be a added as a drawable resource to the Android head project
-    var initializationSettingsAndroid =
+    AndroidInitializationSettings initializationSettingsAndroid =
         new AndroidInitializationSettings('launcher_icon');
-    var initializationSettingsIOS =
+    IOSInitializationSettings initializationSettingsIOS =
         IOSInitializationSettings(onDidReceiveLocalNotification: null);
-    var initializationSettings = InitializationSettings(
+    InitializationSettings initializationSettings = InitializationSettings(
         android: initializationSettingsAndroid, iOS: initializationSettingsIOS);
     flutterLocalNotificationsPlugin.initialize(initializationSettings,
         onSelectNotification: onSelectNotification);
@@ -233,13 +232,14 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
       if (payload.contains('Item x')) {
         await Navigator.push(
           context,
-          MaterialPageRoute<void>(builder: (context) => DashboardView()),
+          MaterialPageRoute<void>(
+              builder: (BuildContext context) => DashboardView()),
         );
       } else {
         await Navigator.push(
           context,
           MaterialPageRoute<void>(
-              builder: (context) => ItemDetailView(
+              builder: (BuildContext context) => ItemDetailView(
                     itemId: payload,
                   )),
         );
@@ -582,7 +582,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
 
 // This function is used to handle errors that occur in the service.
   void _onError(error) {
-    final errorCode = getErrorCodesFromError(error);
+    final ErrorCodes errorCode = getErrorCodesFromError(error);
     if (errorCode == null) {
       print('Undefined error: $error');
       return;
@@ -591,6 +591,8 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
     print('ErrorCode: $errorCode');
   }
 
+  Future<void> _startBackgroundTracking(geo.Coordinate globalCoordinate) async {
+    print('$TAG startBackgroundTracking');
   Future<void> startBackgroundTracking(geo.Coordinate globalCoordinate) async {
     print('$TAG startBackgroundTracking:' + globalCoordinate.toString());
 
@@ -618,7 +620,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
   }
 
   //code written by xpertlab - if PsConst.GEO_SERVICE_KEY = true start background tracking
-  Future<void> checkbackgroundstatus() async {
+  /*Future<void> checkbackgroundstatus() async {
     final SharedPreferences sharedPreferences =
         await PsSharedPreferences.instance.futureShared;
 
@@ -629,6 +631,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
     if (status == "true") {
       startBackgroundTracking(globalCoordinate);
     }
+  } */
   }
 
   //end if PsConst.GEO_SERVICE_KEY = true
@@ -652,28 +655,23 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
     if (await Permission.locationAlways.isPermanentlyDenied) {
       globalCoordinate = await GeolocatorPlatform.instance.getCurrentPosition()
           as geo.Coordinate; //needs to be fixed
-    } else if (await Permission.locationAlways.isDenied) {
-      requestPermission();
+      setState(() {
+        _nearMeItemProvider.resetNearMeItemList(globalCoordinate);
+      });
+    } else if (await Permission.locationAlways.isDenied &&
+        sharedPreferences.getBool(PsConst.GEO_SERVICE_KEY)) {
+      await requestPermission();
     } else {
       // if locationAlways.isGranted use Geofence to get current lat/lng
       geo.Geofence.initialize();
       geo.Geofence.requestPermissions();
       globalCoordinate = await geo.Geofence.getCurrentLocation();
-      startBackgroundTracking(globalCoordinate);
+      _startBackgroundTracking(globalCoordinate);
+      setState(() {
+        _nearMeItemProvider.resetNearMeItemList(globalCoordinate);
+      });
     }
-    setState(() {
-      _nearMeItemProvider.resetNearMeItemList(globalCoordinate);
-    });
     //setState(() {});
-  }
-
-  double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-    var p = 0.017453292519943295;
-    var c = cos;
-    var a = 0.5 -
-        c((lat2 - lat1) * p) / 2 +
-        c(lat1 * p) * c(lat2 * p) * (1 - c((lon2 - lon1) * p)) / 2;
-    return 12742 * asin(sqrt(a));
   }
 
   static const double GEOFENCE_EXPIRATION_IN_HOURS = 12;
@@ -1008,43 +1006,47 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
       {String paypload = "Item x", Item item}) async {
     print("$TAG scheduling one with $title and $subtitle");
 
-    Future.delayed(const Duration(seconds: 5), () {}).then((result) async {
+    Future.delayed(const Duration(seconds: 5), () {})
+        .then((Object result) async {
       var mfile = null;
       if (item == null || item.defaultPhoto == null) {
         mfile = await getImageFilePathFromAssets(
             'assets/images/making_thumbs_up_foreground.png');
-        var smallPictureStyleInformation = BigPictureStyleInformation(
-            FilePathAndroidBitmap(mfile /*.absolute.path*/),
-            largeIcon: FilePathAndroidBitmap(mfile /*.absolute.path*/),
-            contentTitle: '$title',
-            htmlFormatContentTitle: true,
-            summaryText: '$subtitle',
-            hideExpandedLargeIcon: true,
-            htmlFormatSummaryText: true);
-        var bigPictureStyleInformation = BigPictureStyleInformation(
-            FilePathAndroidBitmap(mfile /*.absolute.path*/),
-            largeIcon: FilePathAndroidBitmap(mfile /*.absolute.path*/),
-            contentTitle: '$title',
-            htmlFormatContentTitle: true,
-            summaryText: '$subtitle',
-            hideExpandedLargeIcon: false,
-            htmlFormatSummaryText: true);
-        final androidPlatformChannelSpecifics = AndroidNotificationDetails(
-            '1818', 'BoB', 'BoB Alert',
-            importance: Importance.high,
-            priority: Priority.high,
-            styleInformation: event == GeofenceStatus.EXIT
-                ? smallPictureStyleInformation
-                : bigPictureStyleInformation,
-            largeIcon: FilePathAndroidBitmap(mfile /*.absolute.path*/),
-            ticker: 'ticker');
-        final iOSPlatformChannelSpecifics = IOSNotificationDetails(
-            attachments: <IOSNotificationAttachment>[
-              IOSNotificationAttachment(mfile /*.absolute.path*/)
-            ]);
-        final platformChannelSpecifics = NotificationDetails(
-            android: androidPlatformChannelSpecifics,
-            iOS: iOSPlatformChannelSpecifics);
+        BigPictureStyleInformation smallPictureStyleInformation =
+            BigPictureStyleInformation(
+                FilePathAndroidBitmap(mfile /*.absolute.path*/),
+                largeIcon: FilePathAndroidBitmap(mfile /*.absolute.path*/),
+                contentTitle: '$title',
+                htmlFormatContentTitle: true,
+                summaryText: '$subtitle',
+                hideExpandedLargeIcon: true,
+                htmlFormatSummaryText: true);
+        BigPictureStyleInformation bigPictureStyleInformation =
+            BigPictureStyleInformation(
+                FilePathAndroidBitmap(mfile /*.absolute.path*/),
+                largeIcon: FilePathAndroidBitmap(mfile /*.absolute.path*/),
+                contentTitle: '$title',
+                htmlFormatContentTitle: true,
+                summaryText: '$subtitle',
+                hideExpandedLargeIcon: false,
+                htmlFormatSummaryText: true);
+        final AndroidNotificationDetails androidPlatformChannelSpecifics =
+            AndroidNotificationDetails('1818', 'BoB', 'BoB Alert',
+                importance: Importance.high,
+                priority: Priority.high,
+                styleInformation: event == GeofenceStatus.EXIT
+                    ? smallPictureStyleInformation
+                    : bigPictureStyleInformation,
+                largeIcon: FilePathAndroidBitmap(mfile /*.absolute.path*/),
+                ticker: 'ticker');
+        final IOSNotificationDetails iOSPlatformChannelSpecifics =
+            IOSNotificationDetails(attachments: <IOSNotificationAttachment>[
+          IOSNotificationAttachment(mfile /*.absolute.path*/)
+        ]);
+        final NotificationDetails platformChannelSpecifics =
+            NotificationDetails(
+                android: androidPlatformChannelSpecifics,
+                iOS: iOSPlatformChannelSpecifics);
         await flutterLocalNotificationsPlugin.show(
             // rng.nextInt(100000), title, subtitle, platformChannelSpecifics,
             1,
@@ -1056,38 +1058,41 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
         mfile = await SaveFile().saveImage(
             PsConfig.ps_app_image_url + item.defaultPhoto.imgPath ?? '');
         print(mfile.absolute.path);
-        var smallPictureStyleInformation = BigPictureStyleInformation(
-            FilePathAndroidBitmap(mfile.absolute.path),
-            largeIcon: FilePathAndroidBitmap(mfile.absolute.path),
-            contentTitle: '$title',
-            htmlFormatContentTitle: true,
-            summaryText: '$subtitle',
-            hideExpandedLargeIcon: true,
-            htmlFormatSummaryText: true);
-        var bigPictureStyleInformation = BigPictureStyleInformation(
-            FilePathAndroidBitmap(mfile.absolute.path),
-            largeIcon: FilePathAndroidBitmap(mfile.absolute.path),
-            contentTitle: '$title',
-            htmlFormatContentTitle: true,
-            summaryText: '$subtitle',
-            hideExpandedLargeIcon: false,
-            htmlFormatSummaryText: true);
-        final androidPlatformChannelSpecifics = AndroidNotificationDetails(
-            '1818', 'BoB', 'BoB Alert',
-            importance: Importance.high,
-            priority: Priority.high,
-            styleInformation: event == GeofenceStatus.EXIT
-                ? smallPictureStyleInformation
-                : bigPictureStyleInformation,
-            largeIcon: FilePathAndroidBitmap(mfile.absolute.path),
-            ticker: 'ticker');
-        final iOSPlatformChannelSpecifics = IOSNotificationDetails(
-            attachments: <IOSNotificationAttachment>[
-              IOSNotificationAttachment(mfile.absolute.path)
-            ]);
-        final platformChannelSpecifics = NotificationDetails(
-            android: androidPlatformChannelSpecifics,
-            iOS: iOSPlatformChannelSpecifics);
+        BigPictureStyleInformation smallPictureStyleInformation =
+            BigPictureStyleInformation(
+                FilePathAndroidBitmap(mfile.absolute.path),
+                largeIcon: FilePathAndroidBitmap(mfile.absolute.path),
+                contentTitle: '$title',
+                htmlFormatContentTitle: true,
+                summaryText: '$subtitle',
+                hideExpandedLargeIcon: true,
+                htmlFormatSummaryText: true);
+        BigPictureStyleInformation bigPictureStyleInformation =
+            BigPictureStyleInformation(
+                FilePathAndroidBitmap(mfile.absolute.path),
+                largeIcon: FilePathAndroidBitmap(mfile.absolute.path),
+                contentTitle: '$title',
+                htmlFormatContentTitle: true,
+                summaryText: '$subtitle',
+                hideExpandedLargeIcon: false,
+                htmlFormatSummaryText: true);
+        final AndroidNotificationDetails androidPlatformChannelSpecifics =
+            AndroidNotificationDetails('1818', 'BoB', 'BoB Alert',
+                importance: Importance.high,
+                priority: Priority.high,
+                styleInformation: event == GeofenceStatus.EXIT
+                    ? smallPictureStyleInformation
+                    : bigPictureStyleInformation,
+                largeIcon: FilePathAndroidBitmap(mfile.absolute.path),
+                ticker: 'ticker');
+        final IOSNotificationDetails iOSPlatformChannelSpecifics =
+            IOSNotificationDetails(attachments: <IOSNotificationAttachment>[
+          IOSNotificationAttachment(mfile.absolute.path)
+        ]);
+        final NotificationDetails platformChannelSpecifics =
+            NotificationDetails(
+                android: androidPlatformChannelSpecifics,
+                iOS: iOSPlatformChannelSpecifics);
         await flutterLocalNotificationsPlugin.show(
             // rng.nextInt(100000), title, subtitle, platformChannelSpecifics,
             1,
@@ -1100,8 +1105,8 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
   }
 
   Future<String> getImageFilePathFromAssets(String asset) async {
-    final byteData = await rootBundle.load(asset);
-    final file = File(
+    final ByteData byteData = await rootBundle.load(asset);
+    final File file = File(
         '${(await getTemporaryDirectory()).path}/${asset.split('/').last}');
     await file.writeAsBytes(byteData.buffer
         .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
@@ -1135,7 +1140,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
 
   Future<void> requestPermission() async {
     print('REQUESTING PERMISSION');
-    Navigator.pushReplacementNamed(
+    await Navigator.pushReplacementNamed(
       context,
       RoutePaths.permissionRationale,
     );
@@ -1360,7 +1365,8 @@ class __HomeNearMeItemHorizontalListWidgetState
                                   return FutureBuilder<dynamic>(
                                     future: itemDetailProvider.loadItem(
                                         item.id, loginUserId),
-                                    builder: (context, snapshot) {
+                                    builder: (BuildContext context,
+                                        AsyncSnapshot snapshot) {
                                       if (itemDetailProvider != null &&
                                           itemDetailProvider.itemDetail !=
                                               null &&

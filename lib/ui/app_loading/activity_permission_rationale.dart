@@ -18,14 +18,15 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
-class PermissionRationale extends StatefulWidget {
+class ActivityPermissionRationale extends StatefulWidget {
   @override
   State<StatefulWidget> createState() {
-    return PermissionRationaleView();
+    return ActivityPermissionRationaleView();
   }
 }
 
-class PermissionRationaleView extends State<PermissionRationale> {
+class ActivityPermissionRationaleView
+    extends State<ActivityPermissionRationale> {
   dynamic callLogout(
       AppInfoProvider appInfoProvider, int index, BuildContext context) async {
     // updateSelectedIndex( index);
@@ -126,7 +127,7 @@ class PermissionRationaleView extends State<PermissionRationale> {
                       height: 50,
                       minWidth: 100,
                       onPressed: () async {
-                        // Navigator.of(context).pop();
+                        Navigator.of(context).pop();
                         // Check whether to allow location permission.
                         await FlLocation.requestLocationPermission();
                       },
@@ -229,7 +230,7 @@ class PermissionRationaleView extends State<PermissionRationale> {
                       height: 50,
                       minWidth: 100,
                       onPressed: () async {
-                        //Navigator.of(context).pop();
+                        Navigator.of(context).pop();
                         await FlLocation.requestLocationPermission();
                       },
                       child: Text(
