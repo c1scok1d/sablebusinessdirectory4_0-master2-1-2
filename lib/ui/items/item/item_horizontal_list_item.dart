@@ -21,6 +21,8 @@ class ItemHorizontalListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // var TAG='ItemHorizontalListItem';
+    // print('$TAG ${item.name}');
     return GestureDetector(
         onTap: onTap,
         child: Card(

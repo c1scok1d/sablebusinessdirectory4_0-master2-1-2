@@ -593,6 +593,8 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
 
   Future<void> _startBackgroundTracking(geo.Coordinate globalCoordinate) async {
     print('$TAG startBackgroundTracking');
+  Future<void> startBackgroundTracking(geo.Coordinate globalCoordinate) async {
+    print('$TAG startBackgroundTracking:' + globalCoordinate.toString());
 
     final SearchItemProvider provider =
         SearchItemProvider(repo: itemRepo, psValueHolder: valueHolder);
@@ -630,7 +632,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
       startBackgroundTracking(globalCoordinate);
     }
   } */
-  //}
+  }
 
   //end if PsConst.GEO_SERVICE_KEY = true
 
@@ -913,11 +915,11 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
     getGeoCity(geofence.id).then((SimpleGeofence item1) {
       // PsValueHolder psValueHolder;
       // psValueHolder = Provider.of<PsValueHolder>(context);
-      ItemDetailProvider itemDetailProvider =
+      final ItemDetailProvider itemDetail =
           ItemDetailProvider(repo: itemRepo, psValueHolder: psValueHolder);
       final String loginUserId = Utils.checkUserLoginId(psValueHolder);
-      itemDetailProvider.loadItem(item1.id, loginUserId).then((item) {
-        item = itemDetailProvider.itemDetail.data;
+      itemDetail.loadItem(item1.id, loginUserId).then((item) {
+        item=itemDetail.itemDetail.data;
         // print('$TAG actOnGeofence-geofence:${geofence.toJson()}');
         // print('$TAG actOnGeofence-SimpleGeofence1:${item1.toString()}');
         // print('$TAG actOnGeofence-item:${item.toString()}');
@@ -1287,18 +1289,22 @@ class _HomeNearMeItemHorizontalListWidget extends StatefulWidget {
   __HomeNearMeItemHorizontalListWidgetState createState() =>
       __HomeNearMeItemHorizontalListWidgetState();
 }
-
-ItemDetailProvider itemDetailProvider;
+// ItemDetailProvider itemDetailProvider;
 PsValueHolder psValueHolder;
 
 class __HomeNearMeItemHorizontalListWidgetState
     extends State<_HomeNearMeItemHorizontalListWidget> {
+  var TAG='HomeNearMeItemHorizontalListWidgetState';
   ItemRepository itemRepo;
+  // ItemDetailProvider itemDetailProviderWidget;
 
   @override
   Widget build(BuildContext context) {
     itemRepo = Provider.of<ItemRepository>(context);
+
+    ItemRepository itemRepo2 = Provider.of<ItemRepository>(context);
     psValueHolder = Provider.of<PsValueHolder>(context);
+    PsValueHolder psValueHolder2 = Provider.of<PsValueHolder>(context);
     return SliverToBoxAdapter(
       child: Consumer<NearMeItemProvider>(
         builder: (BuildContext context, NearMeItemProvider itemProvider,
@@ -1352,31 +1358,34 @@ class __HomeNearMeItemHorizontalListWidgetState
                                   final Item item =
                                       itemProvider.itemList.data[index];
 
-                                  itemDetailProvider = ItemDetailProvider(
-                                      repo: itemRepo,
-                                      psValueHolder: psValueHolder);
+                                  ItemDetailProvider itemDetailProviderWidget =
+                                      ItemDetailProvider(
+                                          repo: itemRepo2,
+                                          psValueHolder: psValueHolder2);
 
                                   final String loginUserId =
-                                      Utils.checkUserLoginId(psValueHolder);
+                                      Utils.checkUserLoginId(psValueHolder2);
                                   ;
-                                  print('-----------------${item.id}');
+                                  print('$TAG Length-----------------${itemProvider.itemList.data.length}');
+                                  print('$TAG-----------------${item.name}');
                                   return FutureBuilder<dynamic>(
-                                    future: itemDetailProvider.loadItem(
+                                    future: itemDetailProviderWidget.loadItem(
                                         item.id, loginUserId),
                                     builder: (BuildContext context,
                                         AsyncSnapshot snapshot) {
-                                      if (itemDetailProvider != null &&
-                                          itemDetailProvider.itemDetail !=
+                                      if (itemDetailProviderWidget != null &&
+                                          itemDetailProviderWidget.itemDetail !=
                                               null &&
-                                          itemDetailProvider.itemDetail.data !=
+                                          itemDetailProviderWidget.itemDetail.data !=
                                               null) {
+                                        print('$TAG After Load-----------------${itemDetailProviderWidget.itemDetail.data.name}');
                                         return ItemHorizontalListItem(
                                           coreTagKey:
                                               itemProvider.hashCode.toString() +
                                                   item.id,
                                           //'feature',
                                           // item: itemProvider.itemList.data[index],
-                                          item: itemDetailProvider
+                                          item: itemDetailProviderWidget
                                               .itemDetail.data,
                                           onTap: () async {
                                             // print(itemProvider.itemList.data[index]
