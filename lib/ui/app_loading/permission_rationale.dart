@@ -127,7 +127,11 @@ class PermissionRationaleView extends State<PermissionRationale> {
                       minWidth: 100,
                       onPressed: () async {
                         Navigator.of(context).pop();
-                        FlLocation.requestLocationPermission();
+                        LocationPermission locationPermission =
+                            await FlLocation.checkLocationPermission();
+                        if (locationPermission != LocationPermission.always) {
+                          FlLocation.requestLocationPermission();
+                        }
                       },
                       child: Text(
                         'Continue',
@@ -141,9 +145,6 @@ class PermissionRationaleView extends State<PermissionRationale> {
                       height: 50,
                       minWidth: 100,
                       onPressed: () async {
-                        /*Navigator.of(context).pop();
-                        (await PsSharedPreferences.instance.futureShared)
-                            .setBool(PsConst.GEO_SERVICE_KEY, false); */
                         showDeniedDialog();
                       },
                       child: Text(
@@ -229,7 +230,11 @@ class PermissionRationaleView extends State<PermissionRationale> {
                       minWidth: 100,
                       onPressed: () async {
                         Navigator.of(context).pop();
-                        FlLocation.requestLocationPermission();
+                        LocationPermission locationPermission =
+                            await FlLocation.checkLocationPermission();
+                        if (locationPermission != LocationPermission.always) {
+                          FlLocation.requestLocationPermission();
+                        }
                       },
                       child: Text(
                         'Go to Settings',
