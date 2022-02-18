@@ -67,6 +67,8 @@ import 'package:provider/single_child_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../provider/user/user_provider.dart';
+
 class HomeDashboardViewWidget extends StatefulWidget {
   const HomeDashboardViewWidget(
       this._scrollController,
@@ -191,7 +193,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
     }
     // Create a [GeofenceService] instance and set options.
     _geofenceService = GeofenceService.instance.setup(
-        interval: 5000,
+        interval: 30000,
         accuracy: 100,
         loiteringDelayMs: 60000,
         statusChangeDelayMs: 10000,
@@ -392,15 +394,14 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
             },
             child: Icon(Icons.add, color: PsColors.white),
             backgroundColor: PsColors.mainColor,
-            // label: Text(Utils.getString(context, 'dashboard__submit_ad'),
-            //     style: Theme.of(context)
-            //         .textTheme
-            //         .caption
-            //         .copyWith(color: PsColors.white)),
           ),
           body: WillStartForegroundTask(
               onWillStart: () async {
-                // You can add a foreground task start condition.
+                /*
+                if user has granted background location permissions, continue
+                location listening and alerting on geofence triggers when
+                app is terminated
+                 */
                 return _geofenceService.isRunningService;
               },
               androidNotificationOptions: const AndroidNotificationOptions(
@@ -558,14 +559,18 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
   }
 
 // This function is to be called when the activity has changed.
-  void _onActivityChanged(Activity prevActivity, Activity currActivity) {
+  Future<void> _onActivityChanged(
+      Activity prevActivity, Activity currActivity) async {
     print('prevActivity: ${prevActivity.toJson()}');
     print('currActivity: ${currActivity.toJson()}');
-    if (currActivity.type == ActivityType.STILL ||
-        currActivity.type == ActivityType.UNKNOWN) {
-      //_geofenceService.pause;
-    } else {
-      //_geofenceService.resume;
+    if (prevActivity.type == ActivityType.STILL ||
+        prevActivity.type == ActivityType.UNKNOWN &&
+            currActivity.type != ActivityType.STILL ||
+        currActivity.type != ActivityType.UNKNOWN) {
+      if (_geofenceService.isRunning) {
+        globalCoordinate = await geo.Geofence.getCurrentLocation();
+        //  _startBackgroundTracking(globalCoordinate);
+      }
     }
   }
 
@@ -593,13 +598,11 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
 
   Future<void> _startBackgroundTracking(geo.Coordinate globalCoordinate) async {
     print('$TAG startBackgroundTracking');
-  Future<void> startBackgroundTracking(geo.Coordinate globalCoordinate) async {
-    print('$TAG startBackgroundTracking:' + globalCoordinate.toString());
 
     final SearchItemProvider provider =
         SearchItemProvider(repo: itemRepo, psValueHolder: valueHolder);
-    ItemParameterHolder itemParameterHolder = ItemParameterHolder();
-    bool isConnectedToInternet = await Utils.checkInternetConnectivity();
+    final ItemParameterHolder itemParameterHolder = ItemParameterHolder();
+    final bool isConnectedToInternet = await Utils.checkInternetConnectivity();
     final StreamController<PsResource<List<Item>>> itemListStream =
         StreamController<PsResource<List<Item>>>.broadcast();
     itemListStream.stream.listen((PsResource<List<Item>> event) {
@@ -616,25 +619,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
         globalCoordinate.longitude,
         PsConst.RADIUS,
         itemParameterHolder.getNearMeParameterHolder());
-    print('Foo ${itemListStream}');
   }
-
-  //code written by xpertlab - if PsConst.GEO_SERVICE_KEY = true start background tracking
-  /*Future<void> checkbackgroundstatus() async {
-    final SharedPreferences sharedPreferences =
-        await PsSharedPreferences.instance.futureShared;
-
-    String status = "";
-
-    status = sharedPreferences.getBool(PsConst.GEO_SERVICE_KEY).toString();
-
-    if (status == "true") {
-      startBackgroundTracking(globalCoordinate);
-    }
-  } */
-  }
-
-  //end if PsConst.GEO_SERVICE_KEY = true
 
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initPlatformState() async {
@@ -819,7 +804,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
                 i.ratingDetail,
                 [GeofenceRadius(id: i.id, length: 5000)],
                 GEOFENCE_EXPIRATION_IN_MILLISECONDS,
-                GeofenceStatus.DWELL));
+                GeofenceStatus.ENTER));
         geofences.putIfAbsent(
             i.id,
             () => SimpleGeofence(
@@ -886,7 +871,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
                 i.ratingDetail,
                 [GeofenceRadius(id: i.id, length: 5000)],
                 GEOFENCE_EXPIRATION_IN_MILLISECONDS,
-                GeofenceStatus.DWELL));
+                GeofenceStatus.EXIT));
       }
     }
     // Geofence.removeAllGeolocations();
@@ -919,7 +904,7 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
           ItemDetailProvider(repo: itemRepo, psValueHolder: psValueHolder);
       final String loginUserId = Utils.checkUserLoginId(psValueHolder);
       itemDetail.loadItem(item1.id, loginUserId).then((item) {
-        item=itemDetail.itemDetail.data;
+        item = itemDetail.itemDetail.data;
         // print('$TAG actOnGeofence-geofence:${geofence.toJson()}');
         // print('$TAG actOnGeofence-SimpleGeofence1:${item1.toString()}');
         // print('$TAG actOnGeofence-item:${item.toString()}');
@@ -975,27 +960,18 @@ class _HomeDashboardViewWidgetState extends State<HomeDashboardViewWidget> {
               break;
           }
 
-          if (sharedPreferences.getString(PsConst.VALUE_HOLDER__USER_NAME) ==
-                  null ||
-              sharedPreferences.getString(PsConst.VALUE_HOLDER__USER_NAME) ==
-                  '') {
-            scheduleNotification('Good news', message, GeofenceStatus.ENTER,
+          // if user logged in, get user name
+          UserProvider provider;
+          if (provider != null && provider.user.data.userName != null) {
+            scheduleNotification('Good news ' + provider.user.data.userName,
+                message, GeofenceStatus.ENTER,
                 paypload: item.id, item: item);
           } else {
-            scheduleNotification(
-                'Good news ' +
-                    sharedPreferences
-                        .getString(PsConst.VALUE_HOLDER__USER_NAME),
-                message,
-                GeofenceStatus.ENTER,
-                paypload: item.id,
-                item: item);
+            scheduleNotification('Good news', message, GeofenceStatus.ENTER,
+                paypload: item.id, item: item);
           }
         });
-
-        //}
       });
-      //}
     });
   }
 
@@ -1289,12 +1265,13 @@ class _HomeNearMeItemHorizontalListWidget extends StatefulWidget {
   __HomeNearMeItemHorizontalListWidgetState createState() =>
       __HomeNearMeItemHorizontalListWidgetState();
 }
+
 // ItemDetailProvider itemDetailProvider;
 PsValueHolder psValueHolder;
 
 class __HomeNearMeItemHorizontalListWidgetState
     extends State<_HomeNearMeItemHorizontalListWidget> {
-  var TAG='HomeNearMeItemHorizontalListWidgetState';
+  var TAG = 'HomeNearMeItemHorizontalListWidgetState';
   ItemRepository itemRepo;
   // ItemDetailProvider itemDetailProviderWidget;
 
@@ -1366,7 +1343,8 @@ class __HomeNearMeItemHorizontalListWidgetState
                                   final String loginUserId =
                                       Utils.checkUserLoginId(psValueHolder2);
                                   ;
-                                  print('$TAG Length-----------------${itemProvider.itemList.data.length}');
+                                  print(
+                                      '$TAG Length-----------------${itemProvider.itemList.data.length}');
                                   print('$TAG-----------------${item.name}');
                                   return FutureBuilder<dynamic>(
                                     future: itemDetailProviderWidget.loadItem(
@@ -1376,9 +1354,11 @@ class __HomeNearMeItemHorizontalListWidgetState
                                       if (itemDetailProviderWidget != null &&
                                           itemDetailProviderWidget.itemDetail !=
                                               null &&
-                                          itemDetailProviderWidget.itemDetail.data !=
+                                          itemDetailProviderWidget
+                                                  .itemDetail.data !=
                                               null) {
-                                        print('$TAG After Load-----------------${itemDetailProviderWidget.itemDetail.data.name}');
+                                        print(
+                                            '$TAG After Load-----------------${itemDetailProviderWidget.itemDetail.data.name}');
                                         return ItemHorizontalListItem(
                                           coreTagKey:
                                               itemProvider.hashCode.toString() +
